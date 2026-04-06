@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donate - Support My Work</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <meta name="theme-color" content="#312e81">
+    <meta name="description" content="Support my work by donating">
+</head>
+<body>
+    <div class="donation-card">
+        <div class="avatar">☕</div>
+        <h1>Donate bẩn</h1>
+        <p class="subtitle">Thằng nào có tiền. Nạp tiền vào donate cho tao. Ít thì 5 quả 🥚, nhiều thì một quả 🚀.</p>
+        
+        <form action="/donate" method="POST" id="donateForm">
+            <div class="amount-options">
+                <button type="button" class="amount-btn selected" data-amount="50000">5 quả trứng</button>
+                <button type="button" class="amount-btn" data-amount="100000">100K</button>
+                <button type="button" class="amount-btn" data-amount="200000">200K</button>
+                <button type="button" class="amount-btn" data-amount="500000">500K</button>
+                <button type="button" class="amount-btn" data-amount="1000000">1 quả tên lửa</button>
+                <button type="button" class="amount-btn" data-amount="custom">Khác</button>
+            </div>
+
+            <div class="custom-amount">
+                <span class="currency-symbol">₫</span>
+                <input type="text" id="amountInput" name="amount" value="50,000" placeholder="Nhập số tiền bạn muốn..." required>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                Gửi Tặng 100,000 ₫
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </button>
+        </form>
+    </div>
+
+    <!-- Payment Modal Overlay — đặt ngoài .donation-card để tránh bị stacking context của backdrop-filter -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal-container">
+            <button class="modal-close" id="closeModalBtn" title="Đóng">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="modal-body" id="modalBody">
+                <!-- Sepay HTML inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const amountBtns = document.querySelectorAll('.amount-btn');
+        const amountInput = document.getElementById('amountInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const paymentModal = document.getElementById('paymentModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalBody = document.getElementById('modalBody');
+
+        const btnTextTemplate = "Gửi Tặng";
+
+        // ── Modal helpers ──────────────────────────────────────────
+        function closeModal() {
+            paymentModal.classList.remove('show');
+            setTimeout(() => { modalBody.innerHTML = ''; }, 350);
+        }
+
+        closeModalBtn.addEventListener('click', closeModal);
+        paymentModal.addEventListener('click', (e) => {
+            if (e.target === paymentModal) closeModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // ── Formatter VND ──────────────────────────────────────────
+        const formatVND = (val) => new Intl.NumberFormat('en-US').format(val);
+
+        // ── Quick-pick buttons ─────────────────────────────────────
+        amountBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                amountBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+
+                const amount = btn.getAttribute('data-amount');
+                if (amount === 'custom') {
+                    amountInput.focus();
+                    const currentVal = parseInt(amountInput.value.replace(/[^0-9]/g, '')) || 0;
+                    updateSubmitBtn(currentVal);
+                } else {
+                    const n = parseInt(amount);
+                    amountInput.value = formatVND(n);
+                    updateSubmitBtn(n);
+                }
+            });
+        });
+
+        amountInput.addEventListener('input', (e) => {
+            amountBtns.forEach(b => b.classList.remove('selected'));
+            const customBtn = Array.from(amountBtns).find(b => b.getAttribute('data-amount') === 'custom');
+            if (customBtn) customBtn.classList.add('selected');
+
+            const raw = e.target.value.replace(/[^0-9]/g, '');
+            if (raw) {
+                const n = parseInt(raw);
+                e.target.value = formatVND(n);
+                updateSubmitBtn(n);
+            } else {
+                e.target.value = '';
+                updateSubmitBtn(0);
+            }
+        });
+
+        amountInput.addEventListener('focus', () => {
+            amountBtns.forEach(b => b.classList.remove('selected'));
+            const customBtn = Array.from(amountBtns).find(b => b.getAttribute('data-amount') === 'custom');
+            if (customBtn) customBtn.classList.add('selected');
+        });
+
+        function updateSubmitBtn(amount) {
+            const arrow = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
+            submitBtn.innerHTML = amount > 0
+                ? `${btnTextTemplate} ${formatVND(amount)} ₫ ${arrow}`
+                : `${btnTextTemplate} ${arrow}`;
+        }
+
+        // ── Intercept window.location redirect ────────────────────
+        // Khi Sepay script gán window.location.href hoặc gọi replace(),
+        // popup sẽ đóng mượt trước rồi navigate sau 350ms.
+        function interceptLocationRedirect() {
+            let intercepted = false;
+
+            function doRedirect(url) {
+                if (intercepted) return;
+                intercepted = true;
+                // Đóng modal với animation
+                paymentModal.classList.remove('show');
+                // Sau khi animation xong thì navigate — dùng history để không trigger setter đã patch
+                setTimeout(() => { window.location.replace(url); }, 380);
+            }
+
+            try {
+                const locDescriptor = Object.getOwnPropertyDescriptor(window, 'location')
+                    || Object.getOwnPropertyDescriptor(Object.getPrototypeOf(window), 'location');
+
+                // Bọc replace() và assign()
+                const origReplace = window.location.replace.bind(window.location);
+                const origAssign  = window.location.assign.bind(window.location);
+
+                Object.defineProperty(window.location, 'replace', {
+                    value: (url) => doRedirect(url),
+                    configurable: true,
+                    writable: true
+                });
+                Object.defineProperty(window.location, 'assign', {
+                    value: (url) => doRedirect(url),
+                    configurable: true,
+                    writable: true
+                });
+
+                // Patch href setter
+                const hrefDescriptor = Object.getOwnPropertyDescriptor(window.location, 'href')
+                    || Object.getOwnPropertyDescriptor(Object.getPrototypeOf(window.location), 'href');
+
+                if (hrefDescriptor && hrefDescriptor.set) {
+                    Object.defineProperty(window.location, 'href', {
+                        get: hrefDescriptor.get
+                            ? hrefDescriptor.get.bind(window.location)
+                            : () => window.location.href,
+                        set: (url) => doRedirect(url),
+                        configurable: true
+                    });
+                }
+            } catch (err) {
+                // Nếu browser không cho patch location (SecurityError),
+                // fallback: lắng nghe beforeunload để đóng nhanh nhất có thể
+                console.warn('location patch failed, using beforeunload fallback', err);
+                window.addEventListener('beforeunload', () => {
+                    paymentModal.style.transition = 'none';
+                    paymentModal.classList.remove('show');
+                }, { once: true });
+            }
+        }
+
+        // ── Form submit → call API → show popup ────────────────────
+        document.getElementById('donateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const amount = parseInt(amountInput.value.replace(/[^0-9]/g, '')) || 0;
+            if (amount <= 0) {
+                alert('Vui lòng nhập số tiền hợp lệ!');
+                return;
+            }
+
+            const originalHtml = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `Đang xử lý... <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`;
+
+            try {
+                const res = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount })
+                });
+
+                const response = await res.json();
+                const htmlStr = response.data?.template;
+
+                if (!htmlStr) {
+                    alert('Không nhận được template từ máy chủ!');
+                    return;
+                }
+
+                // Inject HTML + re-execute scripts (Sepay redirect sẽ chạy đúng window)
+                modalBody.innerHTML = htmlStr;
+
+                // ── Intercept redirect từ Sepay script ───────────────
+                interceptLocationRedirect();
+
+                // Re-run <script> tags (innerHTML không exec scripts)
+                modalBody.querySelectorAll('script').forEach(oldScript => {
+                    const s = document.createElement('script');
+                    if (oldScript.src) s.src = oldScript.src;
+                    else s.textContent = oldScript.textContent;
+                    document.head.appendChild(s);
+                    oldScript.remove();
+                });
+
+                paymentModal.classList.add('show');
+
+            } catch (err) {
+                alert('Lỗi kết nối tới máy chủ!');
+                console.error(err);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalHtml;
+            }
+        });
+    </script>
+</body>
+</html>

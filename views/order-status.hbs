@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kết quả thanh toán</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#312e81">
+    <style>
+        /* ── Order Status Page ── */
+        .status-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            padding: 3rem 2.5rem;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6);
+            text-align: center;
+            box-sizing: border-box;
+            animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(32px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-icon {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .status-icon.loading {
+            background: rgba(99, 102, 241, 0.15);
+            border: 2px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .status-icon.loading::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: #6366f1;
+            animation: spin 1s linear infinite;
+        }
+
+        .status-icon.success {
+            background: rgba(16, 185, 129, 0.15);
+            border: 2px solid rgba(16, 185, 129, 0.4);
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
+        }
+
+        .status-icon.success svg {
+            stroke: #10b981;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.8) both;
+        }
+
+        .status-icon.pending {
+            background: rgba(245, 158, 11, 0.15);
+            border: 2px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .status-icon.pending svg {
+            stroke: #f59e0b;
+        }
+
+        .status-icon.failed {
+            background: rgba(239, 68, 68, 0.15);
+            border: 2px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .status-icon.failed svg {
+            stroke: #ef4444;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            80% {
+                transform: scale(1.2);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .status-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #ffffff, #c7d2fe);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0 0 0.5rem;
+        }
+
+        .status-subtitle {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .order-info {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .order-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.9rem 1.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            gap: 1rem;
+        }
+
+        .order-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .order-info-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 400;
+            flex-shrink: 0;
+        }
+
+        .order-info-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            text-align: right;
+            word-break: break-all;
+        }
+
+        .order-info-value.amount {
+            font-size: 1.1rem;
+            color: #10b981;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+        }
+
+        .badge.pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fcd34d;
+        }
+
+        .badge.failed {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+        }
+
+        .badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .skeleton {
+            display: inline-block;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s ease infinite;
+            border-radius: 6px;
+            height: 14px;
+            width: 120px;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            padding: 0.85rem 1.75rem;
+            border-radius: 14px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.25s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="status-card" id="statusCard">
+        <div class="status-icon loading" id="statusIcon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.5)" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+            </svg>
+        </div>
+
+        <h1 class="status-title" id="statusTitle">Đang tải...</h1>
+        <p class="status-subtitle" id="statusSubtitle">Đang lấy thông tin đơn hàng</p>
+
+        <div class="order-info" id="orderInfo">
+            <div class="order-info-row">
+                <span class="order-info-label">Mã đơn hàng</span>
+                <span class="order-info-value"><span class="skeleton"></span></span>
+            </div>
+            <div class="order-info-row">
+                <span class="order-info-label">Số tiền</span>
+                <span class="order-info-value"><span class="skeleton" style="width:80px"></span></span>
+            </div>
+            <div class="order-info-row">
+                <span class="order-info-label">Trạng thái</span>
+                <span class="order-info-value"><span class="skeleton" style="width:90px"></span></span>
+            </div>
+            <div class="order-info-row">
+                <span class="order-info-label">Thời gian</span>
+                <span class="order-info-value"><span class="skeleton" style="width:140px"></span></span>
+            </div>
+        </div>
+
+        <a href="/" class="back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Về trang chủ
+        </a>
+    </div>
+
+    <script>
+        // Lấy orderId từ URL path: /ket-qua-thanh-toan/:id
+        // Không dùng Handlebars variable vì ResponseInterceptor có thể wrap response
+        const orderId = window.location.pathname.split('/').filter(Boolean).pop();
+
+        const statusIcon = document.getElementById('statusIcon');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusSubtitle = document.getElementById('statusSubtitle');
+        const orderInfoEl = document.getElementById('orderInfo');
+
+        const formatVND = (val) => new Intl.NumberFormat('vi-VN', {
+            style: 'currency', currency: 'VND'
+        }).format(val);
+
+        const formatDate = (dateStr) => {
+            if (!dateStr) return '—';
+            return new Date(dateStr).toLocaleString('vi-VN', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+        };
+
+        const statusConfig = {
+            pending: {
+                iconClass: 'pending',
+                iconSvg: `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+                title: 'Đang chờ thanh toán',
+                subtitle: 'Đơn hàng đang trong quá trình xử lý',
+                badge: 'pending',
+                badgeText: 'Chờ xử lý'
+            },
+            paid: {
+                iconClass: 'success',
+                iconSvg: `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+                title: 'Thanh toán thành công!',
+                subtitle: 'Cảm ơn bạn đã ủng hộ ❤️',
+                badge: 'success',
+                badgeText: 'Thành công'
+            },
+            cancelled: {
+                iconClass: 'failed',
+                iconSvg: `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+                title: 'Thanh toán thất bại',
+                subtitle: 'Đã có lỗi xảy ra. Vui lòng thử lại.',
+                badge: 'failed',
+                badgeText: 'Thất bại'
+            },
+        };
+
+        function renderOrder(order) {
+            const rawStatus = (order.status || 'pending').toLowerCase();
+            console.log(rawStatus);
+            const cfg = statusConfig[rawStatus] || statusConfig.pending;
+
+            statusIcon.className = `status-icon ${cfg.iconClass}`;
+            statusIcon.innerHTML = cfg.iconSvg;
+            statusTitle.textContent = cfg.title;
+            statusSubtitle.textContent = cfg.subtitle;
+
+            orderInfoEl.innerHTML = `
+                <div class="order-info-row">
+                    <span class="order-info-label">Mã đơn hàng</span>
+                    <span class="order-info-value">#${order.id || orderId}</span>
+                </div>
+                ${order.traction_uuid ? `
+                <div class="order-info-row">
+                    <span class="order-info-label">Mã giao dịch</span>
+                    <span class="order-info-value" style="font-size:0.8rem;color:#64748b">${order.traction_uuid}</span>
+                </div>` : ''}
+                <div class="order-info-row">
+                    <span class="order-info-label">Số tiền</span>
+                    <span class="order-info-value amount">${formatVND(order.amount || 0)}</span>
+                </div>
+                ${order.note ? `
+                <div class="order-info-row">
+                    <span class="order-info-label">Ghi chú</span>
+                    <span class="order-info-value" style="font-weight:400;color:#94a3b8">${order.note}</span>
+                </div>` : ''}
+                <div class="order-info-row">
+                    <span class="order-info-label">Trạng thái</span>
+                    <span class="order-info-value">
+                        <span class="badge ${cfg.badge}">${cfg.badgeText}</span>
+                    </span>
+                </div>
+                <div class="order-info-row">
+                    <span class="order-info-label">Thời gian</span>
+                    <span class="order-info-value">${formatDate(order.created_at || order.createdAt)}</span>
+                </div>
+            `;
+        }
+
+        async function fetchOrder() {
+            try {
+                const res = await fetch(`/api/orders/${orderId}`);
+                const json = await res.json();
+
+                // Hỗ trợ cả wrapped { data: order } lẫn plain order object
+                const order = json?.data ?? json;
+
+                if (!res.ok || !order) {
+                    throw new Error(json?.message || 'Không tìm thấy đơn hàng');
+                }
+
+                renderOrder(order);
+            } catch (err) {
+                statusIcon.className = 'status-icon failed';
+                statusIcon.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+                statusTitle.textContent = 'Không tìm thấy đơn hàng';
+                statusSubtitle.textContent = err.message;
+                orderInfoEl.innerHTML = '';
+            }
+        }
+
+        fetchOrder();
+    </script>
+</body>
+
+</html>

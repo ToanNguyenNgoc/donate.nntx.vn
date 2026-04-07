@@ -9,6 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.useGlobalInterceptors(new ResponseInterceptor());
+  app.enableCors({ origin: '*' });
 
   app.useStaticAssets(join(process.cwd(), 'public')); // For CSS/JS/Images
   app.setBaseViewsDir(join(process.cwd(), 'views')); // Templates directory

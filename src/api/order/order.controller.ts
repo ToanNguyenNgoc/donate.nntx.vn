@@ -21,6 +21,7 @@ export class OrderController {
     const order = new Order();
     order.amount = body.amount;
     order.note = body.note;
+    order.traction_uuid = 'DH-' + String(new Date().getTime());
     const resOrder = await this.orderRepo.save(order);
     const { html } = await this.sepayService.createOrder(resOrder);
     await this.orderRepo.update(Number(resOrder.id), { template: html });

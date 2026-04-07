@@ -6,9 +6,7 @@ export class WebhookController {
   constructor(protected readonly sepayService: SepayService) {}
   @Post('sepay')
   async ipnSepay(@Body() body: any) {
-    // await this.sepayService.inpNotify(body);
-    // return true;
-    console.log(body);
+    await this.sepayService.inpNotify(body);
     return true;
   }
 }
